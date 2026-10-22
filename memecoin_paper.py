@@ -18,7 +18,11 @@ REGOLE (JUDGE, MIE: l'articolo mostra solo 2 regole a parole, non il giudizio di
   "un pool sotto l'ora e' un no" -> eta' >= 60 min
   "non comprare il primo pump, compra il primo ritracciamento / la calma" -> il token ha
   fatto almeno +100% dal primo prezzo visto, ora e' sotto il massimo del 20-60% e la
-  variazione a 5 minuti e' entro +-3%.
+  variazione a 5 minuti e' entro +-10% (era +-3% fino al 22/10/2026 ore 20: troppo
+  stretta per i memecoin, vedi nota sotto).
+NOTA CRONOLOGIA REGOLE: la soglia di 'calma' e' passata da +-3% a +-10% il 22/10/2026 dopo 1h30 di test, con ZERO
+  trade aperti: scelta fatta sulla distribuzione delle variazioni a 5 minuti (mediana 12%), non sui risultati.
+  Da quel momento i parametri NON si toccano piu' fino al verdetto.
 USCITE: volume (regola RISK dell'articolo: vol 6h / media 6h su 24h < 0,20), crollo di
   liquidita' (rug), stop -30%, trailing (dopo +50%, uscita a -25% dal massimo), 12 ore.
   Stop, trailing e 12 ore sono MIEI: l'articolo non li specifica.
@@ -65,7 +69,7 @@ P = dict(
     age_min_min=15, age_max_h=72, liq_min=12_000, vol24_min=40_000,
     mcap_min=60_000, mcap_max=8_000_000,
     # --- JUDGE (ipotesi mie)
-    age_entry_min=60, min_pump=1.0, pullback_min=0.20, pullback_max=0.60, calm_m5=0.03,
+    age_entry_min=60, min_pump=1.0, pullback_min=0.20, pullback_max=0.60, calm_m5=0.10,
     liq_drop_max=0.20,
     # --- SIZE
     bank0=2000.0, ticket_pct=0.05, ticket_cap_pct=0.06, liq_cap_pct=0.02,
