@@ -1,0 +1,44 @@
+name: memecoin-paper
+
+# Test paper dello sleeve memecoin: nessuna chiave, nessun segreto, solo dati pubblici.
+# Va in un repository PUBBLICO (minuti illimitati). In uno privato i 2000 minuti gratuiti
+# al mese finirebbero in circa 2 giorni.
+#
+# Ogni giro dura 5h45 (5 blocchi da 1h09) e salva i dati nel repository dopo OGNI blocco,
+# quindi un'interruzione fa perdere al massimo circa un'ora di dati.
+# Ripartenza automatica ogni 6 ore. Avvio manuale: tab Actions -> memecoin-paper -> Run workflow.
+
+on:
+  schedule:
+    - cron: "0 */6 * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: memecoin-paper
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 355
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Installa requests
+        run: pip install requests
+      - name: Cicli ogni 5 minuti, con salvataggio ogni ora
+        run: |
+          git config user.name "paper-bot"
+          git config user.email "paper-bot@users.noreply.github.com"
+          for i in 1 2 3 4 5; do
+            python memecoin_paper.py run --hours 1.15 --data data
+            git add -A data || true
+            git commit -m "dati $(date -u +%F-%H%M)" || echo "niente da salvare"
+            git pull --rebase || true
+            git push || echo "push non riuscito"
+          done
