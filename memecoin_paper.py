@@ -22,7 +22,11 @@ REGOLE (JUDGE, MIE: l'articolo mostra solo 2 regole a parole, non il giudizio di
 USCITE: volume (regola RISK dell'articolo: vol 6h / media 6h su 24h < 0,20), crollo di
   liquidita' (rug), stop -30%, trailing (dopo +50%, uscita a -25% dal massimo), 12 ore.
   Stop, trailing e 12 ore sono MIEI: l'articolo non li specifica.
-NON INCLUSI: il dial QUANT e il giudizio di Jev; il numero di holder (GeckoTerminal non lo da').
+JEV IN OMBRA: se esiste la variabile d'ambiente OPENROUTER_API_KEY, a ogni ingresso (strategia e
+  controllo) viene registrata la probabilita' di Jev ("sale?" e "truffa?"). NON cambia nessuna
+  decisione: il report confronta poi i trade con probabilita' alta e bassa.
+NON INCLUSI: il dial QUANT (si calcola a posteriori dalla data dei trade); il numero di holder
+  (GeckoTerminal non lo da').
 
 COSTI SIMULATI (tutti modificabili in P)
   commissione FOMO 0,45% con minimo 0,95 $ per lato; commissione del pool (dal dato, se c'e');
@@ -73,6 +77,8 @@ P = dict(
     vol_ratio_min=0.20, rug_liq_frac=0.30, vanish_ticks=3,
     # --- tracciamento
     track_liq_min=5_000, hist_len=40, max_track=450,
+    # --- Jev (solo in ombra, via OpenRouter; vedi jev_ask)
+    jev_model="typesafe/jev-1.14", jev_url="https://openrouter.ai/api/alpha/decisions",
 )
 
 
@@ -243,7 +249,84 @@ def exit_reason(pos, p, now):
 
 TRADE_COLS = ["id", "group", "addr", "name", "t_open", "t_close", "hold_min", "ticket", "reason",
               "p_in", "p_in_next", "p_out", "p_out_next", "liq_in", "liq_out",
-              "ret_gross", "ret_A", "ret_B", "pnl_A_usd"]
+              "ret_gross", "ret_A", "ret_B", "pnl_A_usd", "jev_up", "jev_rug"]
+
+
+def _migrate_trades(path):
+    """Se trades.csv e' di una versione precedente (meno colonne), lo riscrive con le colonne nuove."""
+    with open(path, newline="") as f:
+        rd = csv.DictReader(f)
+        if rd.fieldnames == TRADE_COLS:
+            return
+        rows = list(rd)
+    with open(path, "w", newline="") as f:
+        w = csv.DictWriter(f, fieldnames=TRADE_COLS, extrasaction="ignore")
+        w.writeheader()
+        w.writerows(rows)
+
+
+# ------------------------------------------------------------------ Jev in ombra
+_DATA = [None]
+_jev_dbg = [0]
+
+
+def _jev_log(msg):
+    """Salva i primi messaggi di Jev in jev_debug.txt (per controllare il formato della risposta)."""
+    if _jev_dbg[0] >= 8 or not _DATA[0]:
+        return
+    _jev_dbg[0] += 1
+    try:
+        with open(os.path.join(_DATA[0], "jev_debug.txt"), "a") as f:
+            f.write(msg[:1500] + "\n---\n")
+    except OSError:
+        pass
+
+
+def jev_state(p, s, age):
+    dd = 1 - p["price"] / s["peak"] if s["peak"] else 0.0
+    pump = s["peak"] / s["first_price"] - 1 if s["first_price"] else 0.0
+    return (f"Solana memecoin pool '{p['name']}'. Age {age:.0f} minutes. Liquidity ${p['liq']:,.0f}. "
+            f"Market cap ${(p['mcap'] or 0):,.0f}. Volume 24h ${p['v24']:,.0f}, last hour ${p['v1']:,.0f}. "
+            f"Price change: 5 min {p['c5']*100:+.1f}%, 15 min {p['c15']*100:+.1f}%, 1 hour {p['c1']*100:+.1f}%. "
+            f"Since first seen the price rose {pump*100:.0f}% at its peak and is now {dd*100:.0f}% below that peak. "
+            f"Last hour: {p['b1']} buys, {p['s1']} sells. Last 15 minutes: {p['b15']} buys, {p['s15']} sells.")
+
+
+def _jev_prob(ans):
+    if not isinstance(ans, dict):
+        return None
+    v = ans.get("noul", ans.get("probability"))
+    if isinstance(v, dict):
+        v = v.get("probability", v.get("p"))
+    v = num(v)
+    return v if v is not None and 0.0 <= v <= 1.0 else None
+
+
+def jev_ask(p, s, age):
+    """Giudizio di Jev (TypeSafe) via OpenRouter, SOLO REGISTRATO: non cambia nessuna decisione.
+    Serve la variabile d'ambiente OPENROUTER_API_KEY; senza chiave (o con errori) restituisce None."""
+    key = os.environ.get("OPENROUTER_API_KEY", "").strip()
+    if not key:
+        return None, None
+    try:
+        import requests
+        body = {"model": P["jev_model"], "state": jev_state(p, s, age), "questions": {
+            "up": {"type": "noul", "instructions":
+                   "Is this token's price likely to be higher in the next few hours than it is now?"},
+            "rug": {"type": "noul", "instructions":
+                    "Is this token likely a scam or a rug pull, where liquidity is removed or holders "
+                    "cannot sell?"}}}
+        r = requests.post(P["jev_url"], headers={"Authorization": f"Bearer {key}"}, json=body, timeout=20)
+        if r.status_code != 200:
+            _jev_log(f"HTTP {r.status_code}: {r.text}")
+            return None, None
+        j = r.json()
+        _jev_log("OK " + json.dumps(j))
+        ans = j.get("answers") or {}
+        return _jev_prob(ans.get("up")), _jev_prob(ans.get("rug"))
+    except Exception as e:
+        _jev_log("ERRORE " + repr(e))
+        return None, None
 
 
 def write_trade(data, pos):
@@ -256,9 +339,12 @@ def write_trade(data, pos):
                reason=pos["reason"], p_in=pos["p_in"], p_in_next=pos["p_in_next"],
                p_out=pos["p_out"], p_out_next=pos["p_out_next"], liq_in=pos["liq_in"],
                liq_out=pos["liq_out"], ret_gross=round(gross, 5), ret_A=round(a / t - 1, 5),
-               ret_B=round(b / t - 1, 5), pnl_A_usd=round(a - t, 2))
+               ret_B=round(b / t - 1, 5), pnl_A_usd=round(a - t, 2),
+               jev_up=pos.get("jev_up"), jev_rug=pos.get("jev_rug"))
     path = os.path.join(data, "trades.csv")
     new = not os.path.exists(path)
+    if not new:
+        _migrate_trades(path)
     with open(path, "a", newline="") as f:
         w = csv.DictWriter(f, fieldnames=TRADE_COLS)
         if new:
@@ -342,16 +428,19 @@ def entries(state, now, obs):
         if ticket < P["min_ticket"] or ticket > state["cash"]:
             meta["reject"]["ticket/cassa"] = meta["reject"].get("ticket/cassa", 0) + 1
             continue
-        strat_open.append(new_position(state, "strat", p, now, ticket))
+        pos = new_position(state, "strat", p, now, ticket)
+        pos["jev_up"], pos["jev_rug"] = jev_ask(p, s, age)
+        strat_open.append(pos)
         state["cash"] -= ticket
         s["traded"] = True
         meta["signals"] += 1
         pool_c = [t for t in cut if t[0] != a and not t[2].get("ctrl") and not sells_drop(t[1])]
         if pool_c:
-            ca, cp, cs, _ = rng.choice(pool_c)
+            ca, cp, cs, cage = rng.choice(pool_c)
             ct = min(ticket, P["liq_cap_pct"] * cp["liq"])
             if ct >= P["min_ticket"]:
-                new_position(state, "ctrl", cp, now, ct)
+                cpos = new_position(state, "ctrl", cp, now, ct)
+                cpos["jev_up"], cpos["jev_rug"] = jev_ask(cp, cs, cage)
                 cs["ctrl"] = True
 
 
@@ -395,6 +484,7 @@ def log_snapshots(data, now, obs, state):
 
 def tick(data, now=None, fetch=None, rate=10, pages=3, max_calls=45):
     os.makedirs(data, exist_ok=True)
+    _DATA[0] = data
     now = time.time() if now is None else now
     ok_calls = [0]
     raw = fetch or (lambda path, params=None: http_get(path, params, rate))
@@ -600,6 +690,29 @@ def report(data):
             print(f"\nGrafico salvato: {os.path.join(data, 'memecoin_pnl.png')}")
         except Exception as e:
             print("grafico non creato:", repr(e))
+
+    if "jev_up" in df.columns and df.jev_up.notna().any():
+        j = df.dropna(subset=["jev_up"])
+        print(f"\n=== JEV (in ombra: registrato, mai usato per decidere) ===")
+        print(f"Trade con giudizio di Jev: {len(j)} (strategia {(j.group == 'strat').sum()}, "
+              f"controllo {(j.group == 'ctrl').sum()})")
+        if len(j) < 60:
+            print("Troppo pochi per concludere (servono almeno 60): numeri solo indicativi.")
+        if len(j) >= 10:
+            try:
+                med = j.jev_up.median()
+                hi, lo = j[j.jev_up > med], j[j.jev_up <= med]
+                print(f"  'sale?' sopra la mediana ({med:.2f}): n {len(hi)}, rendimento netto A medio "
+                      f"{hi.ret_A.mean()*100:+.1f}%   |   sotto: n {len(lo)}, {lo.ret_A.mean()*100:+.1f}%")
+                print(f"  correlazione di rango tra 'sale?' e rendimento: "
+                      f"{j.jev_up.corr(j.ret_A, method='spearman'):+.2f}  (0 = nessun legame)")
+                jr = j.dropna(subset=["jev_rug"])
+                isr = jr.reason == "rug/liquidita'"
+                if isr.any() and (~isr).any():
+                    print(f"  'truffa?' medio: nei rug {jr[isr].jev_rug.mean():.2f} "
+                          f"({isr.sum()} casi) contro {jr[~isr].jev_rug.mean():.2f} negli altri")
+            except Exception as e:
+                print("  analisi Jev non riuscita:", repr(e))
 
     print("\n=== VERDETTO ===")
     if n < 100:
