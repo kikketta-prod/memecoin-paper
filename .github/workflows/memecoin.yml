@@ -6,6 +6,8 @@ name: memecoin-paper
 #
 # Ogni giro dura 5h45 (5 blocchi da 1h09) e salva i dati nel repository dopo OGNI blocco,
 # quindi un'interruzione fa perdere al massimo circa un'ora di dati.
+# Jev in ombra: se nei Secrets del repository c'e' OPENROUTER_API_KEY lo script registra il giudizio
+# di Jev senza usarlo per decidere; se manca, il test gira come prima.
 # Ripartenza automatica ogni 6 ore. Avvio manuale: tab Actions -> memecoin-paper -> Run workflow.
 
 on:
@@ -32,6 +34,8 @@ jobs:
       - name: Installa requests
         run: pip install requests
       - name: Cicli ogni 5 minuti, con salvataggio ogni ora
+        env:
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
         run: |
           git config user.name "paper-bot"
           git config user.email "paper-bot@users.noreply.github.com"
