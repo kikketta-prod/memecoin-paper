@@ -1,0 +1,2 @@
+id,group,addr,name,t_open,t_close,hold_min,ticket,reason,p_in,p_in_next,p_out,p_out_next,liq_in,liq_out,ret_gross,ret_A,ret_B,pnl_A_usd,jev_up,jev_rug
+2,ctrl,8iZ2bq9bBP2pR3GsB2EMckJY8pAwMBV6C1K8XhgXkTBi,Rockstar / SOL,1792723560,1792728603,84.0,100.0,volume,6.485079911474333e-05,6.485079911474333e-05,6.485079911474333e-05,6.485079911474333e-05,56476.8761,56183.9643,0.0,-0.03178,-0.0512,-3.18,0.27,0.44
