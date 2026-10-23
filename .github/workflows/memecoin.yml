@@ -1,18 +1,23 @@
 name: memecoin-paper
 
-# Test paper dello sleeve memecoin: nessuna chiave, nessun segreto, solo dati pubblici.
+# Test paper dello sleeve memecoin: nessuna chiave di trading, solo dati pubblici.
 # Va in un repository PUBBLICO (minuti illimitati). In uno privato i 2000 minuti gratuiti
 # al mese finirebbero in circa 2 giorni.
 #
-# Ogni giro dura 5h45 (5 blocchi da 1h09) e salva i dati nel repository dopo OGNI blocco,
-# quindi un'interruzione fa perdere al massimo circa un'ora di dati.
+# Ogni giro dura circa 5h30 (11 blocchi da 30 minuti) e salva i dati nel repository dopo OGNI blocco:
+# un'interruzione fa perdere al massimo 30 minuti di dati.
+# SALVATAGGIO A PROVA DI CONFLITTO (dal 23/10/2026): i dati di questa esecuzione hanno sempre la
+# precedenza sui file dati del repository; il codice (script, workflow) e' sempre quello del repository.
+# Prima di salvare si controlla che state.json sia un JSON valido, cosi' non si salva mai un file rotto.
 # Jev in ombra: se nei Secrets del repository c'e' OPENROUTER_API_KEY lo script registra il giudizio
 # di Jev senza usarlo per decidere; se manca, il test gira come prima.
-# Ripartenza automatica ogni 6 ore. Avvio manuale: tab Actions -> memecoin-paper -> Run workflow.
+# Ripartenza ogni 3 ore: se un giro e' ancora in corso, il nuovo resta "Pending" e parte appena
+# il precedente finisce (nessun buco); i Pending sostituiti da uno piu' recente risultano "Canceled": e' normale.
+# Avvio manuale: tab Actions -> memecoin-paper -> Run workflow.
 
 on:
   schedule:
-    - cron: "0 */6 * * *"
+    - cron: "5 */3 * * *"
   workflow_dispatch:
 
 concurrency:
@@ -33,16 +38,33 @@ jobs:
           python-version: "3.12"
       - name: Installa requests
         run: pip install requests
-      - name: Cicli ogni 5 minuti, con salvataggio ogni ora
+      - name: Cicli ogni 5 minuti, con salvataggio ogni 30 minuti
         env:
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
         run: |
           git config user.name "paper-bot"
           git config user.email "paper-bot@users.noreply.github.com"
-          for i in 1 2 3 4 5; do
-            python memecoin_paper.py run --hours 1.15 --data data
+
+          save_data() {
             git add -A data || true
-            git commit -m "dati $(date -u +%F-%H%M)" || echo "niente da salvare"
-            git pull --rebase || true
-            git push || echo "push non riuscito"
+            if git diff --cached --quiet; then echo "niente da salvare"; return 0; fi
+            if ! python -c "import json; json.load(open('data/state.json'))"; then
+              echo "ATTENZIONE: state.json non valido, NON lo salvo"; return 1
+            fi
+            rm -rf /tmp/mydata && cp -r data /tmp/mydata
+            for t in 1 2 3; do
+              git fetch -q origin main || { sleep 5; continue; }
+              git reset -q --hard origin/main
+              rm -rf data && cp -r /tmp/mydata data
+              git add -A data
+              git commit -qm "dati $(date -u +%F-%H%M)" || { echo "niente da salvare"; return 0; }
+              if git push -q origin HEAD:main; then echo "dati salvati"; return 0; fi
+              sleep 5
+            done
+            echo "ATTENZIONE: push non riuscito dopo 3 tentativi"; return 1
+          }
+
+          for i in 1 2 3 4 5 6 7 8 9 10 11; do
+            python memecoin_paper.py run --hours 0.5 --data data || echo "blocco terminato con errore"
+            save_data || true
           done
