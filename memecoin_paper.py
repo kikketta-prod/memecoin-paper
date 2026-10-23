@@ -23,6 +23,9 @@ REGOLE (JUDGE, MIE: l'articolo mostra solo 2 regole a parole, non il giudizio di
 NOTA CRONOLOGIA REGOLE: la soglia di 'calma' e' passata da +-3% a +-10% il 22/10/2026 dopo 1h30 di test, con ZERO
   trade aperti: scelta fatta sulla distribuzione delle variazioni a 5 minuti (mediana 12%), non sui risultati.
   Da quel momento i parametri NON si toccano piu' fino al verdetto.
+  23/10/2026: il controllo casuale ora sceglie solo pool con almeno 30 scambi nell'ultima ora (il primo
+  controllo, id 2, era un pool morto a prezzo fisso: perdeva solo i costi). Il trade id 2 e' escluso
+  dal report. Nessuna regola della STRATEGIA e' cambiata.
 USCITE: volume (regola RISK dell'articolo: vol 6h / media 6h su 24h < 0,20), crollo di
   liquidita' (rug), stop -30%, trailing (dopo +50%, uscita a -25% dal massimo), 12 ore.
   Stop, trailing e 12 ore sono MIEI: l'articolo non li specifica.
@@ -57,7 +60,9 @@ import json
 import math
 import os
 import random
+import shutil
 import sys
+import tempfile
 import time
 
 BASE = os.environ.get("GT_BASE", "https://api.geckoterminal.com/api/v2")
@@ -71,6 +76,8 @@ P = dict(
     # --- JUDGE (ipotesi mie)
     age_entry_min=60, min_pump=1.0, pullback_min=0.20, pullback_max=0.60, calm_m5=0.10,
     liq_drop_max=0.20,
+    # --- controllo casuale: solo pool con scambi recenti (dal 23/10/2026; vedi NOTA CRONOLOGIA)
+    ctrl_min_tx1=30, ctrl_excl_ids=(2,),
     # --- SIZE
     bank0=2000.0, ticket_pct=0.05, ticket_cap_pct=0.06, liq_cap_pct=0.02,
     min_ticket=25.0, max_open=5,
@@ -162,11 +169,22 @@ def parse_pool(d):
 
 
 # ------------------------------------------------------------------ stato
+_BAK = os.path.join(tempfile.gettempdir(), "memecoin_state_bak.json")   # fuori dal repository
+
+
 def load_state(data):
     path = os.path.join(data, "state.json")
     if os.path.exists(path):
-        with open(path) as f:
-            return json.load(f)
+        try:
+            with open(path) as f:
+                return json.load(f)
+        except ValueError:                        # file corrotto (es. conflitto git): backup locale
+            if os.path.exists(_BAK):
+                with open(_BAK) as f:
+                    st = json.load(f)
+                print("ATTENZIONE: state.json illeggibile, ripristinato dal backup locale", flush=True)
+                return st
+            raise
     return dict(version=1, cash=P["bank0"], bank0=P["bank0"], next_id=1, pools={}, positions=[],
                 meta=dict(first_tick=None, last_tick=None, ticks_ok=0, ticks_fail=0, gaps=0,
                           gap_sec=0.0, pools_seen=0, cut_obs=0, signals=0, reject={}))
@@ -177,6 +195,10 @@ def save_state(data, state):
     with open(path + ".tmp", "w") as f:
         json.dump(state, f)
     os.replace(path + ".tmp", path)
+    try:
+        shutil.copyfile(path, _BAK)
+    except OSError:
+        pass
 
 
 # ------------------------------------------------------------------ filtri
@@ -438,7 +460,8 @@ def entries(state, now, obs):
         state["cash"] -= ticket
         s["traded"] = True
         meta["signals"] += 1
-        pool_c = [t for t in cut if t[0] != a and not t[2].get("ctrl") and not sells_drop(t[1])]
+        pool_c = [t for t in cut if t[0] != a and not t[2].get("ctrl") and not sells_drop(t[1])
+                  and t[1]["b1"] + t[1]["s1"] >= P["ctrl_min_tx1"]]
         if pool_c:
             ca, cp, cs, cage = rng.choice(pool_c)
             ct = min(ticket, P["liq_cap_pct"] * cp["liq"])
@@ -577,12 +600,18 @@ def tick(data, now=None, fetch=None, rate=10, pages=3, max_calls=45):
 
 def run(data, hours, interval, **kw):
     end = time.time() + hours * 3600
+    fails = 0
     while True:
         t0 = time.time()
         try:
             print(tick(data, **kw), flush=True)
-        except Exception as e:                    # un errore non deve fermare il test
+            fails = 0
+        except Exception as e:                    # un errore isolato non ferma il test
+            fails += 1
             print("errore nel ciclo:", repr(e), flush=True)
+            if fails >= 3:                        # errore ripetuto: meglio fermarsi che girare a vuoto
+                print("TROPPI ERRORI CONSECUTIVI: mi fermo (il workflow deve risultare rosso)", flush=True)
+                sys.exit(3)
         if time.time() + interval > end:
             break
         time.sleep(max(1.0, interval - (time.time() - t0)))
@@ -650,6 +679,7 @@ def report(data):
         print("\nNessun trade ancora chiuso.")
         return
     df = pd.read_csv(path).sort_values("t_close")
+    df = df[~((df.group == "ctrl") & df.id.isin(P["ctrl_excl_ids"]))]    # controllo su pool morto
     st, ct = df[df.group == "strat"], df[df.group == "ctrl"]
     n = len(st)
     print(f"\n=== TRADE CHIUSI: strategia {n}, controllo casuale {len(ct)} ===")
