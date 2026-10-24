@@ -50,3 +50,7 @@ OK {"model": "typesafe/jev-1.14-20261014", "answers": {"up": {"type": "noul", "n
 ---
 OK {"model": "typesafe/jev-1.14-20261014", "answers": {"up": {"type": "noul", "noul": 0.33}, "rug": {"type": "noul", "noul": 0.56}}, "usage": {"input_tokens": 463, "output_tokens": 36, "cost": 1.9446e-05}, "id": "gen-dec-1792846322-gz6ISLUV3ZR9DzHZzMdF", "provider": "TypeSafe"}
 ---
+OK {"model": "typesafe/jev-1.14-20261014", "answers": {"up": {"type": "noul", "noul": 0.5}, "rug": {"type": "noul", "noul": 0.42}}, "usage": {"input_tokens": 466, "output_tokens": 36, "cost": 1.9572e-05}, "id": "gen-dec-1792851186-Ft9QWdfutCrmdwoQoETR", "provider": "TypeSafe"}
+---
+OK {"model": "typesafe/jev-1.14-20261014", "answers": {"up": {"type": "noul", "noul": 0.5}, "rug": {"type": "noul", "noul": 0.42}}, "usage": {"input_tokens": 468, "output_tokens": 36, "cost": 1.9656e-05}, "id": "gen-dec-1792851186-TDkd2kmWJtfgj9h1sGdD", "provider": "TypeSafe"}
+---
