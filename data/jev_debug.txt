@@ -10,15 +10,3 @@ OK {"model": "typesafe/jev-1.14-20261014", "answers": {"up": {"type": "noul", "n
 ---
 OK {"model": "typesafe/jev-1.14-20261014", "answers": {"up": {"type": "noul", "noul": 0.49}, "rug": {"type": "noul", "noul": 0.4}}, "usage": {"input_tokens": 467, "output_tokens": 36, "cost": 1.9614e-05}, "id": "gen-dec-1792788895-4JWiWiJJ2ZnirwteCziF", "provider": "TypeSafe"}
 ---
-OK {"model": "typesafe/jev-1.14-20261014", "answers": {"up": {"type": "noul", "noul": 0.48}, "rug": {"type": "noul", "noul": 0.41}}, "usage": {"input_tokens": 467, "output_tokens": 36, "cost": 1.9614e-05}, "id": "gen-dec-1792790320-WqgfpuWbx0T40rJn20KM", "provider": "TypeSafe"}
----
-OK {"model": "typesafe/jev-1.14-20261014", "answers": {"up": {"type": "noul", "noul": 0.42}, "rug": {"type": "noul", "noul": 0.32}}, "usage": {"input_tokens": 473, "output_tokens": 36, "cost": 1.9866e-05}, "id": "gen-dec-1792790320-TWzSuWbF3yinz9pPMWY9", "provider": "TypeSafe"}
----
-OK {"model": "typesafe/jev-1.14-20261014", "answers": {"up": {"type": "noul", "noul": 0.38}, "rug": {"type": "noul", "noul": 0.4}}, "usage": {"input_tokens": 477, "output_tokens": 36, "cost": 2.0034e-05}, "id": "gen-dec-1792792015-iUhEKvADCPjLkJ19kjMJ", "provider": "TypeSafe"}
----
-OK {"model": "typesafe/jev-1.14-20261014", "answers": {"up": {"type": "noul", "noul": 0.39}, "rug": {"type": "noul", "noul": 0.47}}, "usage": {"input_tokens": 473, "output_tokens": 36, "cost": 1.9866e-05}, "id": "gen-dec-1792792015-z8TEbdnGXUeQ0Nt8cJM3", "provider": "TypeSafe"}
----
-OK {"model": "typesafe/jev-1.14-20261014", "answers": {"up": {"type": "noul", "noul": 0.52}, "rug": {"type": "noul", "noul": 0.33}}, "usage": {"input_tokens": 475, "output_tokens": 36, "cost": 1.995e-05}, "id": "gen-dec-1792799205-u3OKTKn9hXBNYucYTZuz", "provider": "TypeSafe"}
----
-OK {"model": "typesafe/jev-1.14-20261014", "answers": {"up": {"type": "noul", "noul": 0.46}, "rug": {"type": "noul", "noul": 0.36}}, "usage": {"input_tokens": 465, "output_tokens": 36, "cost": 1.953e-05}, "id": "gen-dec-1792799205-FhtcqqLz7I7UgJt4y6zY", "provider": "TypeSafe"}
----
