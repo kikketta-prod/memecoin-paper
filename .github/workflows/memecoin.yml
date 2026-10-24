@@ -8,6 +8,9 @@ name: memecoin-paper
 # un'interruzione fa perdere al massimo 30 minuti di dati.
 # SALVATAGGIO A PROVA DI CONFLITTO (dal 23/10/2026): i dati di questa esecuzione hanno sempre la
 # precedenza sui file dati del repository; il codice (script, workflow) e' sempre quello del repository.
+# CAUSA DEI BUCHI SCOPERTA IL 24/10: un giro messo in coda per ore faceva il checkout del commit di quando era stato
+# programmato (dati vecchi) e poi sovrascriveva o andava in conflitto con i dati piu' recenti del giro precedente.
+# Ora il checkout e' sempre sull'ultimo commit di main e c'e' una guardia contro la sovrascrittura di dati piu' recenti.
 # Prima di salvare si controlla che state.json sia un JSON valido, cosi' non si salva mai un file rotto.
 # Jev in ombra: se nei Secrets del repository c'e' OPENROUTER_API_KEY lo script registra il giudizio
 # di Jev senza usarlo per decidere; se manca, il test gira come prima.
@@ -33,6 +36,8 @@ jobs:
     timeout-minutes: 355
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: main          # ultimo commit di main AL MOMENTO DELL'AVVIO (di default sarebbe quello del momento in cui il giro e' stato messo in coda)
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
@@ -44,6 +49,8 @@ jobs:
         run: |
           git config user.name "paper-bot"
           git config user.email "paper-bot@users.noreply.github.com"
+          # Un giro rimasto in coda per ore parte con i dati vecchi: ci si allinea SUBITO all'ultimo stato salvato.
+          git fetch -q origin main && git reset -q --hard origin/main
 
           save_data() {
             git add -A data || true
@@ -54,6 +61,12 @@ jobs:
             rm -rf /tmp/mydata && cp -r data /tmp/mydata
             for t in 1 2 3; do
               git fetch -q origin main || { sleep 5; continue; }
+              # Guardia: se il repository ha dati PIU' RECENTI dei miei, non li sovrascrivo.
+              theirs=$(git show origin/main:data/state.json 2>/dev/null | python -c "import json,sys; print(json.load(sys.stdin)['meta']['last_tick'] or 0)" 2>/dev/null || echo 0)
+              mine=$(python -c "import json; print(json.load(open('/tmp/mydata/state.json'))['meta']['last_tick'] or 0)")
+              if ! python -c "import sys; sys.exit(0 if float('$theirs') <= float('$mine') else 1)"; then
+                echo "ATTENZIONE: il repository ha dati piu' recenti dei miei: NON sovrascrivo"; return 1
+              fi
               git reset -q --hard origin/main
               rm -rf data && cp -r /tmp/mydata data
               git add -A data
