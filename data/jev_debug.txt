@@ -150,3 +150,7 @@ OK {"model": "typesafe/jev-1.14-20261014", "answers": {"up": {"type": "noul", "n
 ---
 OK {"model": "typesafe/jev-1.14-20261014", "answers": {"up": {"type": "noul", "noul": 0.42}, "rug": {"type": "noul", "noul": 0.46}}, "usage": {"input_tokens": 470, "output_tokens": 36, "cost": 1.974e-05}, "id": "gen-dec-1792966431-L9kpHG5eehUD1qpPT5Kn", "provider": "TypeSafe"}
 ---
+OK {"model": "typesafe/jev-1.14-20261014", "answers": {"up": {"type": "noul", "noul": 0.53}, "rug": {"type": "noul", "noul": 0.38}}, "usage": {"input_tokens": 479, "output_tokens": 36, "cost": 2.0118e-05}, "id": "gen-dec-1792979609-Y1x9qoCxo7ubSDqmDJPc", "provider": "TypeSafe"}
+---
+OK {"model": "typesafe/jev-1.14-20261014", "answers": {"up": {"type": "noul", "noul": 0.54}, "rug": {"type": "noul", "noul": 0.37}}, "usage": {"input_tokens": 471, "output_tokens": 36, "cost": 1.9782e-05}, "id": "gen-dec-1792979609-zs24Rup0jMmf8eABMjLi", "provider": "TypeSafe"}
+---
