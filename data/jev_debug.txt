@@ -226,3 +226,11 @@ OK {"model": "typesafe/jev-1.14-20261014", "answers": {"up": {"type": "noul", "n
 ---
 OK {"model": "typesafe/jev-1.14-20261014", "answers": {"up": {"type": "noul", "noul": 0.43}, "rug": {"type": "noul", "noul": 0.49}}, "usage": {"input_tokens": 469, "output_tokens": 36, "cost": 1.9698e-05}, "id": "gen-dec-1793146491-4dl76EPABdB23buItME3", "provider": "TypeSafe"}
 ---
+OK {"model": "typesafe/jev-1.14-20261014", "answers": {"up": {"type": "noul", "noul": 0.54}, "rug": {"type": "noul", "noul": 0.44}}, "usage": {"input_tokens": 467, "output_tokens": 36, "cost": 1.9614e-05}, "id": "gen-dec-1793159627-GHefkaMWFTQn9qjx5rrr", "provider": "TypeSafe"}
+---
+OK {"model": "typesafe/jev-1.14-20261014", "answers": {"up": {"type": "noul", "noul": 0.47}, "rug": {"type": "noul", "noul": 0.44}}, "usage": {"input_tokens": 476, "output_tokens": 36, "cost": 1.9992e-05}, "id": "gen-dec-1793159627-UdcveUNkW6S7x2xLzcNC", "provider": "TypeSafe"}
+---
+OK {"model": "typesafe/jev-1.14-20261014", "answers": {"up": {"type": "noul", "noul": 0.48}, "rug": {"type": "noul", "noul": 0.37}}, "usage": {"input_tokens": 470, "output_tokens": 36, "cost": 1.974e-05}, "id": "gen-dec-1793159627-TQQGX9aqEXiRhomY8CZE", "provider": "TypeSafe"}
+---
+OK {"model": "typesafe/jev-1.14-20261014", "answers": {"up": {"type": "noul", "noul": 0.6}, "rug": {"type": "noul", "noul": 0.3}}, "usage": {"input_tokens": 467, "output_tokens": 36, "cost": 1.9614e-05}, "id": "gen-dec-1793159628-CTSBsBc6thXmdC2lWBwH", "provider": "TypeSafe"}
+---
