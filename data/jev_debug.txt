@@ -234,3 +234,7 @@ OK {"model": "typesafe/jev-1.14-20261014", "answers": {"up": {"type": "noul", "n
 ---
 OK {"model": "typesafe/jev-1.14-20261014", "answers": {"up": {"type": "noul", "noul": 0.6}, "rug": {"type": "noul", "noul": 0.3}}, "usage": {"input_tokens": 467, "output_tokens": 36, "cost": 1.9614e-05}, "id": "gen-dec-1793159628-CTSBsBc6thXmdC2lWBwH", "provider": "TypeSafe"}
 ---
+OK {"model": "typesafe/jev-1.14-20261014", "answers": {"up": {"type": "noul", "noul": 0.56}, "rug": {"type": "noul", "noul": 0.35}}, "usage": {"input_tokens": 464, "output_tokens": 36, "cost": 1.9488e-05}, "id": "gen-dec-1793165641-hjO1hMEmayV1cHXpS1bd", "provider": "TypeSafe"}
+---
+OK {"model": "typesafe/jev-1.14-20261014", "answers": {"up": {"type": "noul", "noul": 0.5}, "rug": {"type": "noul", "noul": 0.37}}, "usage": {"input_tokens": 467, "output_tokens": 36, "cost": 1.9614e-05}, "id": "gen-dec-1793165642-oM2XjpJCIkcR19Camni9", "provider": "TypeSafe"}
+---
